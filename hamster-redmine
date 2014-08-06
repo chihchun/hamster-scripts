@@ -1,0 +1,42 @@
+#!/usr/bin/python
+from xml.etree import ElementTree
+from calendar import timegm
+import dbus
+import urllib
+import sys
+import time
+import datetime
+import os
+import yaml
+
+username = "chihchun"
+password = ""
+host = "dev.nutsfactory.net"
+
+def main(argv=sys.argv):
+    if(not argv[1:]):
+        print "%s: issue no" % argv[0]
+        return
+
+    issue = int(argv[1])
+    url = "https://%s:%s@%s/issues/%d.xml" % (username, password, host, issue)
+    tree = ElementTree.parse(urllib.urlopen(url))
+
+    project = tree.find(".//project").attrib['name']
+    subject = tree.findtext(".//subject")
+
+    try:
+        projects = yaml.load(open(os.environ['HOME'] + '/.config/hamster-projects.yaml'))
+        activity = projects[project]
+    except KeyError:
+        activity = "self-employed"
+
+    description = "%s: %s #%d" % (project, subject, issue)
+
+    hamster = dbus.SessionBus().get_object('org.gnome.Hamster', '/org/gnome/Hamster')
+    hamster.AddFact('%s,%s' % (activity, description), 
+	    timegm(datetime.datetime.now().timetuple()), 0, False)
+
+    print "Hamster is tracking %s,%s" % (activity, description)
+if __name__ == "__main__":
+    main()
