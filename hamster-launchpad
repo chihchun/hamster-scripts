@@ -1,0 +1,39 @@
+#!/usr/bin/python
+from calendar import timegm
+from collections import defaultdict
+from launchpadlib.launchpad import Launchpad
+import datetime
+import dbus
+import os
+import sys
+import time
+import yaml
+
+def main(argv=sys.argv):
+    if(not argv[1:]):
+        print "%s: [issue no]" % argv[0]
+        return
+
+    issue = int(argv[1])
+
+    launchpad = Launchpad.login_with("hamster", 'production')
+    bug = launchpad.bugs[issue]
+    activity = "ubuntu"
+    description = "%s #%d" % (bug.title, issue)
+    bugtasks = bug.bug_tasks
+    for task in bugtasks:
+    	target = task.target
+	project = target.name
+        try:
+            projects = yaml.load(open(os.environ['HOME'] + '/.config/hamster-projects.yaml'))
+            activity = projects[project]
+	    break
+        except KeyError:
+            activity = "ubuntu"
+
+    hamster = dbus.SessionBus().get_object('org.gnome.Hamster', '/org/gnome/Hamster')
+    hamster.AddFact('%s,%s' % (activity, description), timegm(datetime.datetime.now().timetuple()), 0, False)
+
+    print "Hamster is tracking %s,%s" % (activity, description)
+if __name__ == "__main__":
+    main()
