@@ -1,12 +1,17 @@
 #!/usr/bin/python3
-import calendar 
+import argparse
+import calendar
 import datetime
-import dbus
+import logging
 import os
 import os.path
 import sys
+
+import dbus
 import yaml
 
+logger = logging.getLogger("hamster-zim")
+logging.basicConfig(stream=sys.stdout)
 
 def mapping(path):
     projects = yaml.load(open(os.environ['HOME'] + '/.config/hamster-projects.yaml'), Loader=yaml.BaseLoader)
@@ -15,12 +20,16 @@ def mapping(path):
     # find folder
     for name in reversed(pathes):
         name = name.lower()
+        logger.debug("filename: {}".format(name))
         if name in projects:
             return projects[name]
+
     # find the base filename
-    basename = os.path.splitext(path)[0]
+    basename = os.path.splitext(path.split('/')[-1])[0]
+    logger.debug("basename: {}".format(basename))
     for name in basename.split('_'):
         name = name.lower()
+        logger.debug("filename: {}".format(name))
         if name in projects:
             return projects[name]
 
@@ -44,12 +53,17 @@ if __name__ == "__main__":
     # %s real page source
     # %t selected text
 
-    argv=sys.argv
-    if(not argv[2:]):
-        print("%s: page text" % argv[0])
-        raise Exception("hamster-zim %s %t")
-    fact = mapping(argv[1])
-    description = argv[2]
+    parser = argparse.ArgumentParser(description="update activity")
+    parser.add_argument('-v', dest='verbose', help='verbose', action='store_true')
+    args, unparsed = parser.parse_known_args()
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+
+    if(not unparsed[1:]):
+        raise Exception("Usage: {} page_filename text".format(os.path.basename(__file__)))
+    fact = mapping(unparsed[0])
+    logger.debug("see {} as fact: {}".format(unparsed[0], fact))
+    description = unparsed[1]
 
     hamster = dbus.SessionBus().get_object('org.gnome.Hamster', '/org/gnome/Hamster')
     validate(fact)
