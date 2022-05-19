@@ -17,17 +17,18 @@ def mapping(path):
     projects = yaml.load(open(os.environ['HOME'] + '/.config/hamster-projects.yaml'), Loader=yaml.BaseLoader)
     pathes = path.split('/')
 
-    # find folder
-    for name in reversed(pathes):
-        name = name.lower()
-        logger.debug("filename: {}".format(name))
-        if name in projects:
-            return projects[name]
 
     # find the base filename
     basename = os.path.splitext(path.split('/')[-1])[0]
     logger.debug("basename: {}".format(basename))
     for name in basename.split('_'):
+        name = name.lower()
+        logger.debug("filename: {}".format(name))
+        if name in projects:
+            return projects[name]
+
+    # find folder
+    for name in reversed(pathes):
         name = name.lower()
         logger.debug("filename: {}".format(name))
         if name in projects:
